@@ -23,8 +23,9 @@ class LDA(BaseEstimator):
         The inverse of the estimated features covariance. To be set in `LDA.fit`
 
     self.pi_: np.ndarray of shape (n_classes)
-        The estimated class probabilities. To be set in `GaussianNaiveBayes.fit`
+        The estimated class probabilities. To be set in `LDA.fit`
     """
+
     def __init__(self):
         """
         Instantiate an LDA classifier
@@ -46,7 +47,25 @@ class LDA(BaseEstimator):
         y : ndarray of shape (n_samples, )
             Responses of input data to fit to
         """
-        raise NotImplementedError()
+        mean_vecs = []
+        pis = []
+        labels = np.unique(y)
+        for label in labels:
+            mean_vecs.append(np.mean(X[y == label], axis=0))
+            pis.append(y[y == label] / y.size)
+        self.mu_ = np.array(mean_vecs)
+        self.pi_ = np.array(pis)
+        n_features = X.shape[1]
+        self.cov_ = np.zeros((n_features, n_features))
+        for label, mean_vec in zip(labels, mean_vecs):
+            label_cov = np.zeros((n_features, n_features))
+            for sample in X[y == label]:
+                sample, mean_vec = sample.reshape(n_features, 1),\
+                                   mean_vec.reshape(n_features, 1)
+                label_cov += (sample - mean_vec).dot((sample - mean_vec).T)
+            self.cov_ += label_cov
+        self.cov_ /= y.size
+        self._cov_inv = inv(self.cov_)
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -80,7 +99,8 @@ class LDA(BaseEstimator):
 
         """
         if not self.fitted_:
-            raise ValueError("Estimator must first be fitted before calling `likelihood` function")
+            raise ValueError(
+                "Estimator must first be fitted before calling `likelihood` function")
 
         raise NotImplementedError()
 

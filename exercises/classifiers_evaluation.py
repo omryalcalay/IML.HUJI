@@ -5,6 +5,10 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 from math import atan2, pi
 
+INPUT_PATH = "C:/Users/omrys/Git/IML.HUJI/datasets/"
+OUTPUT_PATH = "C:/Users/omrys/Git/IML.HUJI/exercises/ex3_graphs/"
+ITERATIONS = 1000
+
 
 def load_dataset(filename: str) -> Tuple[np.ndarray, np.ndarray]:
     """
@@ -31,21 +35,38 @@ def load_dataset(filename: str) -> Tuple[np.ndarray, np.ndarray]:
 
 def run_perceptron():
     """
-    Fit and plot fit progression of the Perceptron algorithm over both the linearly separable and inseparable datasets
+    Fit and plot fit progression of the Perceptron algorithm over both the
+    linearly separable and inseparable datasets
 
     Create a line plot that shows the perceptron algorithm's training loss values (y-axis)
     as a function of the training iterations (x-axis).
     """
-    for n, f in [("Linearly Separable", "linearly_separable.npy"), ("Linearly Inseparable", "linearly_inseparable.npy")]:
+    fig = make_subplots(rows=1, cols=2,
+                        subplot_titles=("Linearly Separable",
+                                        "Linearly Inseparable"))
+    for f, i in [("linearly_separable.npy", 1),
+                 ("linearly_inseparable.npy", 2)]:
         # Load dataset
-        raise NotImplementedError()
+        X, y = load_dataset(INPUT_PATH + f)
 
         # Fit Perceptron and record loss in each fit iteration
         losses = []
-        raise NotImplementedError()
+        iterations = [*range(1, ITERATIONS + 1)]
 
+        def callback_func(fit: Perceptron, xi: np.ndarray, yi: int):
+            losses.append(fit._loss(X, y))
+
+        perceptron = Perceptron(max_iter=ITERATIONS, callback=callback_func)
+        perceptron.fit(X, y)
+        iterations = iterations[:len(losses)]
         # Plot figure of loss as function of fitting iteration
-        raise NotImplementedError()
+        fig.add_trace(
+            go.Line(x=iterations, y=losses),
+            row=1, col=i,
+        )
+    fig.update_layout(height=600, width=800,
+                      title_text="Side By Side Subplots")
+    fig.write_image(OUTPUT_PATH + "separable_and_inseparable.jpeg")
 
 
 def get_ellipse(mu: np.ndarray, cov: np.ndarray):
@@ -65,12 +86,14 @@ def get_ellipse(mu: np.ndarray, cov: np.ndarray):
         scatter: A plotly trace object of the ellipse
     """
     l1, l2 = tuple(np.linalg.eigvalsh(cov)[::-1])
-    theta = atan2(l1 - cov[0, 0], cov[0, 1]) if cov[0, 1] != 0 else (np.pi / 2 if cov[0, 0] < cov[1, 1] else 0)
+    theta = atan2(l1 - cov[0, 0], cov[0, 1]) if cov[0, 1] != 0 else (
+        np.pi / 2 if cov[0, 0] < cov[1, 1] else 0)
     t = np.linspace(0, 2 * pi, 100)
     xs = (l1 * np.cos(theta) * np.cos(t)) - (l2 * np.sin(theta) * np.sin(t))
     ys = (l1 * np.sin(theta) * np.cos(t)) + (l2 * np.cos(theta) * np.sin(t))
 
-    return go.Scatter(x=mu[0] + xs, y=mu[1] + ys, mode="lines", marker_color="black")
+    return go.Scatter(x=mu[0] + xs, y=mu[1] + ys, mode="lines",
+                      marker_color="black")
 
 
 def compare_gaussian_classifiers():
@@ -103,4 +126,4 @@ def compare_gaussian_classifiers():
 if __name__ == '__main__':
     np.random.seed(0)
     run_perceptron()
-    compare_gaussian_classifiers()
+    # compare_gaussian_classifiers()
