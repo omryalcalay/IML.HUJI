@@ -76,9 +76,8 @@ class Perceptron(BaseEstimator):
         """
         if self.include_intercept_:
             int_vec = np.ones(X.shape[0])
-            np.insert(X, 0, int_vec, axis=1)
+            X = np.insert(X, 0, int_vec, axis=1)
         self.coefs_ = np.zeros(X.shape[1])
-        self.fitted_ = True
         for _ in range(self.max_iter_):
             mult = np.multiply(y.T, (X @ self.coefs_))
             cond = np.where(mult <= 0)[0]
@@ -101,6 +100,9 @@ class Perceptron(BaseEstimator):
         responses : ndarray of shape (n_samples, )
             Predicted responses of given samples
         """
+        if self.include_intercept_:
+            int_vec = np.ones(X.shape[0])
+            X = np.insert(X, 0, int_vec, axis=1)
         return X @ self.coefs_
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:

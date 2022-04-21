@@ -74,7 +74,7 @@ class GaussianNaiveBayes(BaseEstimator):
         """
         if not self.fitted_:
             raise ValueError("Estimator must first be fitted before calling `likelihood` function")
-
+        # TODO
         raise NotImplementedError()
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
