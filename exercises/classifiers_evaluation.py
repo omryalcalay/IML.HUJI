@@ -90,7 +90,7 @@ def get_ellipse(mu: np.ndarray, cov: np.ndarray):
     ys = (l1 * np.sin(theta) * np.cos(t)) + (l2 * np.cos(theta) * np.sin(t))
 
     return go.Scatter(x=mu[0] + xs, y=mu[1] + ys, mode="lines",
-                      marker_color="black")
+                      marker_color="black", showlegend=False)
 
 
 def compare_gaussian_classifiers():
@@ -103,10 +103,9 @@ def compare_gaussian_classifiers():
         X, y = load_dataset(INPUT_PATH + f)
 
         # Fit models and predict over training set
-        # gnb = GaussianNaiveBayes()
-        # gnb._fit(X, y)
-        # y_gnb = gnb._predict(X)
-        # TODO
+        gnb = GaussianNaiveBayes()
+        gnb._fit(X, y)
+        y_gnb = gnb._predict(X)
 
         lda = LDA()
         lda._fit(X, y)
@@ -118,21 +117,18 @@ def compare_gaussian_classifiers():
         # titles should specify algorithm and accuracy
         # Create subplots
         from IMLearn.metrics import accuracy
-        # acc_gnb = accuracy(y, y_gnb)
-        # TODO
-        acc_gnb = 0
+        acc_gnb = accuracy(y, y_gnb)
         acc_lda = accuracy(y, y_lda)
         fig = make_subplots(rows=1, cols=2,
-                            subplot_titles=("Gaussian Naive Bayes, accuracy: " + str(acc_gnb),
+                            subplot_titles=("GNB, accuracy: " + str(acc_gnb),
                                             "LDA, accuracy: " + str(acc_lda)))
 
         # Add traces for data-points setting symbols and colors
-        # fig.add_trace(
-        #     go.Scatter(x=X[:, 0], y=X[:, 1], mode='markers', showlegend=False,
-        #                marker=dict(color=y_gnb, symbol=y)),
-        #     row=1, col=1,
-        # )
-        # TODO
+        fig.add_trace(
+            go.Scatter(x=X[:, 0], y=X[:, 1], mode='markers', showlegend=False,
+                       marker=dict(color=y_gnb, symbol=y)),
+            row=1, col=1,
+        )
         fig.add_trace(
             go.Scatter(x=X[:, 0], y=X[:, 1], mode='markers', showlegend=False,
                        marker=dict(color=y_lda, symbol=y)),
@@ -140,13 +136,12 @@ def compare_gaussian_classifiers():
         )
 
         # Add `X` dots specifying fitted Gaussians' means
-        # fig.add_trace(
-        #     go.Scatter(x=gnb.mu_[:, 0], y=gnb.mu_[:, 1], mode='markers',
-        #                marker=dict(color='black', symbol='cross'),
-        #                showlegend=False),
-        #     row=1, col=1
-        # )
-        # TODO
+        fig.add_trace(
+            go.Scatter(x=gnb.mu_[:, 0], y=gnb.mu_[:, 1], mode='markers',
+                       marker=dict(color='black', symbol='cross'),
+                       showlegend=False),
+            row=1, col=1
+        )
         fig.add_trace(
             go.Scatter(x=lda.mu_[:, 0], y=lda.mu_[:, 1], mode='markers',
                        marker=dict(color='black', symbol='cross'),
@@ -155,25 +150,33 @@ def compare_gaussian_classifiers():
         )
 
         # Add ellipses depicting the covariances of the fitted Gaussians
-        # means = zip(gnb.mu_, lda.mu_)
-        # TODO
-        means = lda.mu_
-        for mu in means:
-            # fig.add_trace(get_ellipse(mu[0], np.sqrt(gnb.vars_)),
-            #               row=1, col=1)
-            # TODO
+        for mu, var in zip(gnb.mu_, gnb.vars_):
+            fig.add_trace(get_ellipse(mu, np.diag(var)),
+                          row=1, col=1)
+        for mu in lda.mu_:
             fig.add_trace(get_ellipse(mu, lda.cov_),
                           row=1, col=2)
-            # TODO
 
         fig.update_layout(height=600, width=800,
                           title_text=n)
-        # fig.write_image(OUTPUT_PATH + n + ".jpeg")
-        # TODO
-        fig.show()
+        fig.write_image(OUTPUT_PATH + n + ".jpeg")
+
+
+def quiz():
+    x=np.array([0,1,2,3,4,5,6,7])
+    y=np.array([0,0,1,1,1,1,2,2])
+    gnb = GaussianNaiveBayes()
+
+    x = np.array([[1,1], [1,2], [2,3], [2,4], [3,3], [3,4]])
+    y = np.array([0, 0, 1, 1, 1, 1])
+    gnb._fit(x, y)
+    print(gnb.vars_)
+    # run_perceptron()
+
 
 
 if __name__ == '__main__':
     np.random.seed(0)
     # run_perceptron()
-    compare_gaussian_classifiers()
+    # compare_gaussian_classifiers()
+    quiz()

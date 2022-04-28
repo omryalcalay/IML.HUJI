@@ -1,4 +1,5 @@
 from typing import NoReturn
+
 from ...base import BaseEstimator
 import numpy as np
 
@@ -39,7 +40,18 @@ class GaussianNaiveBayes(BaseEstimator):
         y : ndarray of shape (n_samples, )
             Responses of input data to fit to
         """
-        raise NotImplementedError()
+        self.classes_ = np.unique(y)
+        pi = []
+        mean_vecs = []
+        vars_vecs = []
+        for label in self.classes_:
+            pi.append(y[y == label].size / y.size)
+            mean_vecs.append(np.mean(X[y == label], axis=0))
+            vars_vecs.append(np.var(X[y == label], axis=0))
+        self.pi_ = np.array(pi)
+        self.mu_ = np.array(mean_vecs)
+        self.vars_ = np.array(vars_vecs)
+        self.fitted_ = True
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """
@@ -55,7 +67,11 @@ class GaussianNaiveBayes(BaseEstimator):
         responses : ndarray of shape (n_samples, )
             Predicted responses of given samples
         """
-        raise NotImplementedError()
+        y_pred = []
+        for sample_likelihood in self.likelihood(X):
+            yi = self.classes_[np.argmax(sample_likelihood)]
+            y_pred.append(yi)
+        return np.array(y_pred)
 
     def likelihood(self, X: np.ndarray) -> np.ndarray:
         """
@@ -74,8 +90,24 @@ class GaussianNaiveBayes(BaseEstimator):
         """
         if not self.fitted_:
             raise ValueError("Estimator must first be fitted before calling `likelihood` function")
-        # TODO
-        raise NotImplementedError()
+        y_pred = []
+        for sample in X:
+            yi = []
+            for i in range(len(self.classes_)):
+                mu_cur = self.mu_[i].reshape((len(self.mu_[i]), 1))
+                pi_cur = self.pi_[i]
+                cov_cur = np.diag(self.vars_[i])
+                cov_inv_cur = np.linalg.inv(cov_cur)
+                a = (cov_inv_cur @ mu_cur).T @ sample
+                b = np.diag(
+                    np.log(pi_cur / np.sqrt(np.linalg.norm(cov_cur))) - .5 * (
+                            (mu_cur.T @ cov_inv_cur) @ mu_cur
+                    )
+                )
+                c = -.5 * sample.T @ cov_inv_cur @ sample
+                yi.append(a + b + c)
+            y_pred.append(yi)
+        return np.array(y_pred)
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
@@ -95,4 +127,4 @@ class GaussianNaiveBayes(BaseEstimator):
             Performance under missclassification loss function
         """
         from ...metrics import misclassification_error
-        raise NotImplementedError()
+        return misclassification_error(y, self._predict(X))
