@@ -47,9 +47,9 @@ class LDA(BaseEstimator):
         y : ndarray of shape (n_samples, )
             Responses of input data to fit to
         """
+        self.classes_ = np.unique(y)
         mean_vecs = []
         pi = []
-        self.classes_ = np.unique(y)
         for label in self.classes_:
             mean_vecs.append(np.mean(X[y == label], axis=0))
             pi.append(y[y == label].size / y.size)
@@ -83,10 +83,8 @@ class LDA(BaseEstimator):
             Predicted responses of given samples
         """
         y_pred = []
-        a = self._cov_inv @ self.mu_.T
-        b = np.diag(np.log(self.pi_) - .5 * ((self.mu_ @ self._cov_inv) @ self.mu_.T))
-        for sample in X:
-            yi = self.classes_[np.argmax(a.T @ sample + b)]
+        for sample_likelihood in self.likelihood(X):
+            yi = self.classes_[np.argmax(sample_likelihood)]
             y_pred.append(yi)
         return np.array(y_pred)
 
@@ -108,8 +106,14 @@ class LDA(BaseEstimator):
         if not self.fitted_:
             raise ValueError(
                 "Estimator must first be fitted before calling `likelihood` function")
-        # TODO
-        raise NotImplementedError()
+        y_pred = []
+        a = self._cov_inv @ self.mu_.T
+        b = np.diag(
+            np.log(self.pi_) - .5 * ((self.mu_ @ self._cov_inv) @ self.mu_.T))
+        for sample in X:
+            yi = a.T @ sample + b
+            y_pred.append(yi)
+        return np.array(y_pred)
 
     def _loss(self, X: np.ndarray, y: np.ndarray) -> float:
         """
