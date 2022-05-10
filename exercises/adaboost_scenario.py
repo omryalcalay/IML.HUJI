@@ -1,10 +1,12 @@
 import numpy as np
 from typing import Tuple
-from IMLearn.learners.metalearners.adaboost import AdaBoost
+from IMLearn.metalearners.adaboost import AdaBoost
 from IMLearn.learners.classifiers import DecisionStump
 from utils import *
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+
+OUTPUT_PATH = "C:/Users/omrys/Git/IML.HUJI/exercises/ex4_graphs/"
 
 
 def generate_data(n: int, noise_ratio: float) -> Tuple[np.ndarray, np.ndarray]:
@@ -38,24 +40,100 @@ def generate_data(n: int, noise_ratio: float) -> Tuple[np.ndarray, np.ndarray]:
     return X, y
 
 
-def fit_and_evaluate_adaboost(noise, n_learners=250, train_size=5000, test_size=500):
-    (train_X, train_y), (test_X, test_y) = generate_data(train_size, noise), generate_data(test_size, noise)
+def fit_and_evaluate_adaboost(noise, n_learners=250, train_size=5000,
+                              test_size=500):
+    (train_X, train_y), (test_X, test_y) = generate_data(train_size,
+                                                         noise), generate_data(
+        test_size, noise)
+    ada = AdaBoost(lambda: DecisionStump(), n_learners)
+    ada._fit(train_X, train_y)
 
     # Question 1: Train- and test errors of AdaBoost in noiseless case
-    raise NotImplementedError()
+    ensembles = np.array(range(1, n_learners + 1))
+    train_errs = []
+    test_errs = []
+    for t in ensembles:
+        train_errs.append(ada.partial_loss(train_X, train_y, t))
+        test_errs.append(ada.partial_loss(test_X, test_y, t))
+    fig = go.Figure([
+        go.Scatter(x=ensembles, y=train_errs, name="Train errors"),
+        go.Scatter(x=ensembles, y=test_errs, name="Test errors")],
+        layout=go.Layout(
+            title="Errors as a function of ensemble size",
+            xaxis=dict(title="Ensemble size")))
+    fig.write_image(OUTPUT_PATH + "Q1_noise" + str(noise) + ".jpeg")
 
     # Question 2: Plotting decision surfaces
     T = [5, 50, 100, 250]
-    lims = np.array([np.r_[train_X, test_X].min(axis=0), np.r_[train_X, test_X].max(axis=0)]).T + np.array([-.1, .1])
-    raise NotImplementedError()
+    lims = np.array([np.r_[train_X, test_X].min(axis=0),
+                     np.r_[train_X, test_X].max(axis=0)]).T + np.array(
+        [-.1, .1])
+    symbols = np.array(["circle", "x"])
+    fig = make_subplots(rows=2, cols=2,
+                        subplot_titles=[rf"$\textbf{{{t}}}$ iterations" for t
+                                        in T],
+                        horizontal_spacing=0.01, vertical_spacing=.03)
+    lowest_err_t = (0, np.inf)
+    for i, t in enumerate(T):
+        fig.add_traces(
+            [decision_surface(lambda X: ada.partial_predict(X, t), lims[0], lims[1],
+                              showscale=False),
+             go.Scatter(x=test_X[:, 0], y=test_X[:, 1], mode="markers",
+                        showlegend=False,
+                        marker=dict(color=test_y.astype(int),
+                                    symbol=symbols[np.array((test_y + 1)/2).astype(int)],
+                                    colorscale=[custom[0],
+                                                custom[-1]],
+                                    line=dict(color="black",
+                                              width=1)))],
+            rows=(i // 2) + 1, cols=(i % 2) + 1)
+        cur_err = ada.partial_loss(test_X, test_y, t)
+        if cur_err <= lowest_err_t[1]:
+            lowest_err_t = (t, cur_err)
+
+    fig.update_layout(
+        title=rf"$\textbf{{Decision Boundaries}}$",
+        margin=dict(t=100)) \
+        .update_xaxes(visible=False).update_yaxes(visible=False)
+    fig.write_image(OUTPUT_PATH + "Q2_noise" + str(noise) + ".jpeg")
 
     # Question 3: Decision surface of best performing ensemble
-    raise NotImplementedError()
+    fig = go.Figure(
+        [decision_surface(lambda X: ada.partial_predict(X, int(lowest_err_t[0])),
+                          lims[0], lims[1], showscale=False),
+         go.Scatter(x=test_X[:, 0], y=test_X[:, 1], mode="markers",
+                    showlegend=False,
+                    marker=dict(color=test_y.astype(int),
+                                symbol=symbols[np.array((test_y + 1)/2).astype(int)],
+                                colorscale=[custom[0],
+                                            custom[-1]],
+                                line=dict(color="black",
+                                          width=1)))])
+    fig.update_layout(
+        title="Lowest test error - ensemble size: " + str(lowest_err_t[0])
+              + ", accuracy: " + str(1-lowest_err_t[1]),
+        margin=dict(t=100)) \
+        .update_xaxes(visible=False).update_yaxes(visible=False)
+    fig.write_image(OUTPUT_PATH + "Q3_noise" + str(noise) + ".jpeg")
 
     # Question 4: Decision surface with weighted samples
-    raise NotImplementedError()
+    D = (ada.D_ * 20) / np.max(ada.D_)
+    fig = go.Figure(
+        [decision_surface(
+            lambda X: ada._predict(X),
+            lims[0], lims[1], showscale=False),
+            go.Scatter(x=train_X[:, 0], y=train_X[:, 1], mode='markers', showlegend=False,
+                       marker=dict(color=train_y, colorscale=class_colors(2),
+                                   size=D),
+                       xaxis="x", yaxis="y")])
+    fig.update_layout(
+        title="Training sample weights",
+        margin=dict(t=100)) \
+        .update_xaxes(visible=False).update_yaxes(visible=False)
+    fig.write_image(OUTPUT_PATH + "Q4_noise" + str(noise) + ".jpeg")
 
 
 if __name__ == '__main__':
     np.random.seed(0)
-    raise NotImplementedError()
+    fit_and_evaluate_adaboost(0)
+    fit_and_evaluate_adaboost(0.4)

@@ -36,10 +36,8 @@ def misclassification_error(y_true: np.ndarray, y_pred: np.ndarray, normalize: b
     -------
     Misclassification of given predictions
     """
-    # TODO is it true?
-    mult = y_true * y_pred
-    err = np.count_nonzero(mult < 0)
-    # err = np.sum(y_true != y_pred)
+    err = (y_true != y_pred)
+    err = err.sum()
     if normalize:
         err /= y_true.size
     return err
