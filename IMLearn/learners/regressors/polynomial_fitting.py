@@ -34,7 +34,7 @@ class PolynomialFitting(BaseEstimator):
         y : ndarray of shape (n_samples, )
             Responses of input data to fit to
         """
-        return self.lin_reg.fit(self.__transform(X), y)
+        return self.lin_reg.fit(self.__transform(X[:, 0]), y)
 
     def _predict(self, X: np.ndarray) -> np.ndarray:
         """

@@ -39,12 +39,14 @@ class GradientDescent:
         Callable function receives as input any argument relevant for the current GD iteration. Arguments
         are specified in the `GradientDescent.fit` function
     """
+
     def __init__(self,
                  learning_rate: BaseLR = FixedLR(1e-3),
                  tol: float = 1e-5,
                  max_iter: int = 1000,
                  out_type: str = "last",
-                 callback: Callable[[GradientDescent, ...], None] = default_callback):
+                 callback: Callable[
+                     [GradientDescent, ...], None] = default_callback):
         """
         Instantiate a new instance of the GradientDescent class
 
@@ -119,4 +121,33 @@ class GradientDescent:
                 Euclidean norm of w^(t)-w^(t-1)
 
         """
-        raise NotImplementedError()
+        vals = [f.compute_output(X=X, y=y)]
+        # w = [np.array(f.weights)]
+        w = [f.weights]
+        t = 0
+        while True:
+            eta = self.learning_rate_.lr_step(t=t)
+            grad = f.compute_jacobian(X=X, y=y)
+
+            t += 1
+            w.append(w[t - 1] - eta * grad)
+            f.weights = w[t]
+            vals.append(f.compute_output(X=X, y=y))
+
+            delta = np.linalg.norm(w[t] - w[t - 1])
+            kwargs = {'solver': self,
+                      'ws': w[t],
+                      'val': vals[t],
+                      'grad': grad,
+                      't': t,
+                      'eta': eta,
+                      'delta': delta}
+            self.callback_(**kwargs)
+
+            if not ((t < self.max_iter_) and (delta > self.tol_)):
+                break
+        solution = {OUTPUT_VECTOR_TYPE[0]: w[len(w) - 1],
+                    OUTPUT_VECTOR_TYPE[1]: w[np.argmin(vals)],
+                    OUTPUT_VECTOR_TYPE[2]: np.average(w, axis=0)}
+        return solution[self.out_type_]
+
